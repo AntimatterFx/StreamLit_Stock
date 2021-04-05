@@ -2,8 +2,10 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf 
 import plotly.graph_objects as go
-st.title('Stocks')
-st.title('Category')
+import math as m
+import finviz
+#st.title('Stocks')
+#st.title('Category')
 
 
 
@@ -17,7 +19,7 @@ st.title('Category')
     
 #st.header(option)
 
-option = st.sidebar.selectbox("Which Dashboard?", ('fundamental', 'wallstreetbets', 'stocktwits', 'chart', 'pattern'), 3)
+option = st.sidebar.selectbox("Which Dashboard?", ('Stock Data','Balance Sheet','Income Statement','Cash Flow', 'stocktwits', 'chart', 'pattern'), 3)
 
 st.header(option)
 
@@ -25,7 +27,7 @@ st.header(option)
 if option == 'chart':
     
     symbol = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
-
+    
     data = yf.Ticker(symbol)
     df = data.history(period="3mo")
     
@@ -81,7 +83,110 @@ if option == 'chart':
     #st.line_chart(df.Close)
     st.write(data)
 
-if option == 'fund':
-    data = yf.Ticker(symbol)
-    data.dividends
-    data.institutional_holders
+if option == 'Stock Data':
+    try:
+        symbol = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
+        data = yf.Ticker(symbol)
+        fin = finviz.get_stock(symbol)
+        div = data.dividends
+        div = pd.DataFrame(div)
+        #div1 = div.T
+        holder = data.institutional_holders
+        col1, col2 = st.beta_columns(2)
+        #print(len(div))
+        #st.title('Dividend History')
+        if len(div) != 0:
+            col1.subheader('Dividend History')
+            col2.title('')
+            col1.bar_chart(div)
+            col2.dataframe(div)
+        else: 
+            st.title('Dividend History')
+            st.write('Company does not pay dividends')
+        
+        #st.bar_chart(div)
+        #st.title('Dividend History')
+        #st.dataframe(div)
+        st.title('Instutional Holders')
+        st.table(holder)
+        
+        #FinViz Information
+        df = pd.DataFrame.from_dict(fin,orient ='index')
+        df = df[0]
+        df1 = pd.DataFrame(df)
+        #df1.index = 'Info'
+        df1.columns = ['Information']
+        st.table(df1)
+        #st.bar_chart(div)
+    except:
+        st.write('Please enter a valid input')
+        
+if option == 'Balance Sheet':
+    ticker = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
+    df = pd.read_html('https://www.marketwatch.com/investing/stock/{}/financials/balance-sheet'.format(ticker))
+    df1 =  pd.concat([df[4],df[5]])
+    
+    #Fixes the double name thing
+    df2 = df1['Item  Item'].str.split(expand=True).reset_index()
+    newnames = []
+    for i in range(0,len(df1)):
+        x = m.ceil(len(df2.loc[i].dropna())/2)
+        s = df2.loc[i][1:x].tolist()
+        newname = ' '.join(map(str, s))
+        newnames.append(newname)
+    df1['Item  Item'] = newnames
+    df1.rename(columns = {"Item  Item": "Item"}, 
+            inplace = True)
+    
+    maindf = df1
+    maindf = maindf.set_index('{}'.format(maindf.columns[0])) #Makes first column the index 
+    maindf = maindf.drop(columns = maindf.columns[len(maindf.columns)-1]) # Gets rid of last colsumn 
+    maindf = maindf.replace('-',0)
+    
+    st.table(maindf)
+    
+if option == 'Income Statement':
+    ticker = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
+    df = pd.read_html('https://www.marketwatch.com/investing/stock/{}/financials/cash-flow'.format(ticker))
+    df1 =  pd.concat([df[4],df[5],df[6]])
+    
+    #Fixes the double name thing
+    df2 = df1['Item  Item'].str.split(expand=True).reset_index()
+    newnames = []
+    for i in range(0,len(df1)):
+        x = m.ceil(len(df2.loc[i].dropna())/2)
+        s = df2.loc[i][1:x].tolist()
+        newname = ' '.join(map(str, s))
+        newnames.append(newname)
+    df1['Item  Item'] = newnames
+    df1.rename(columns = {"Item  Item": "Item"}, 
+            inplace = True)
+    
+    maindf = df1
+    maindf = maindf.set_index('{}'.format(maindf.columns[0])) #Makes first column the index 
+    maindf = maindf.drop(columns = maindf.columns[len(maindf.columns)-1]) # Gets rid of last colsumn 
+    maindf = maindf.replace('-',0)
+    
+    st.table(maindf)
+if option == 'Cash Flow':
+    ticker = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
+    df = pd.read_html('https://www.marketwatch.com/investing/stock/{}/financials/cash-flow'.format(ticker))
+    df1 =  pd.concat([df[4],df[5],df[6]])
+    
+    df2 = df1['Item  Item'].str.split(expand=True).reset_index()
+    newnames = []
+    for i in range(0,len(df1)):
+        x = m.ceil(len(df2.loc[i].dropna())/2)
+        s = df2.loc[i][1:x].tolist()
+        newname = ' '.join(map(str, s))
+        newnames.append(newname)
+    df1['Item  Item'] = newnames
+    df1.rename(columns = {"Item  Item": "Item"}, 
+            inplace = True)
+    
+    maindf = df1
+    maindf = maindf.set_index('{}'.format(maindf.columns[0])) #Makes first column the index 
+    maindf = maindf.drop(columns = maindf.columns[len(maindf.columns)-1]) # Gets rid of last colsumn 
+    maindf = maindf.replace('-',0)
+    
+    st.table(maindf)
