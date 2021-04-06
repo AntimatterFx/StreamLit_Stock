@@ -19,18 +19,20 @@ import finviz
     
 #st.header(option)
 
-option = st.sidebar.selectbox("Which Dashboard?", ('Stock Data','Balance Sheet','Income Statement','Cash Flow', 'stocktwits', 'chart', 'pattern'), 3)
+option = st.sidebar.selectbox("Which Dashboard?", ('Stock Data','Balance Sheet','Income Statement','Cash Flow', 'TA Chart'), 2)
 
-st.header(option)
+#st.header(option)
 
 
-if option == 'chart':
+if option == 'TA Chart':
     
     symbol = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
     
     data = yf.Ticker(symbol)
-    df = data.history(period="3mo")
-    
+    df = data.history(period="5y")
+    df1 = df
+    df1['200 MA'] = df['Close'].rolling(200).mean()
+    df1['50 MA'] = df['Close'].rolling(50).mean()
     
     df['exp1'] = df['Close'].ewm(span=12, adjust=False).mean()
     df['exp2'] = df['Close'].ewm(span=26, adjust=False).mean()
@@ -42,10 +44,32 @@ if option == 'chart':
     Golden = df[((df['exp3'] <= df['macd']) & (previous_15 >= previous_45))]#.shift(1)
     #Golden['Average'] = (Golden['macd'] + Golden['exp3'])/2
     Death = df[((df['exp3'] >= df['macd']) & (previous_15 <= previous_45))]#.shift(1)
-    #new = pd.DatetimeIndex(Golden.index) + pd.DateOffset(-1) 
-    #Golden  = df[df.index.isin(new)]
-    #Golden['Average'] = (Golden['macd'] + Golden['exp3'])/2
-    #Death.index = pd.DatetimeIndex(Death.index) + pd.DateOffset(-1)
+    
+    rsi_period = 14
+    chg = df['Close'].diff(1)
+    gain = chg.mask(chg<0,0)
+    loss = chg.mask(chg>0,0)
+    avg_gain = gain.ewm(com = rsi_period - 1, min_periods = rsi_period).mean()
+    avg_loss = loss.ewm(com = rsi_period - 1, min_periods = rsi_period).mean()
+    rs = abs(avg_gain/avg_loss)
+    rsi = 100-(100/(1+rs))
+    df['RSI'] = rsi
+    
+    
+    
+    
+    
+    fig2 = go.Figure()
+    fig2.add_trace(go.Candlestick(x=df.index,open=df['Open'],high=df['High'],low=df['Low'],close=df['Close'],name = 'CandleStick'))
+    fig2.update_layout(autosize=True,width=1000,yaxis_title='Price'.format(symbol),xaxis_title='Dates'.format(symbol))
+    fig2.add_trace(go.Scatter(x = df.index,y = df1['200 MA'],mode='lines', name='200MA')) #200 EMA
+    fig2.add_trace(go.Scatter(x = df.index,y = df1['50 MA'],mode='lines', name='50MA')) #50 EMA
+    fig2.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"]), #hide weekends
+                 dict(values=["2015-12-25", "2016-01-01"])])  # hide Christmas and New Year's]
+    
+    df = df[-100:]
+    Golden = df[((df['exp3'] <= df['macd']) & (previous_15 >= previous_45))]#.shift(1)
+    Death = df[((df['exp3'] >= df['macd']) & (previous_15 <= previous_45))]#.shift(1)
     
     fig = go.Figure()
     #fig.add_trace(go.Candlestick(x=df.index,open=df['Open'],high=df['High'],low=df['Low'],close=df['Close'],name = 'CandleStick')) #CandleStick
@@ -55,33 +79,37 @@ if option == 'chart':
     fig.add_trace(go.Scatter(x = Death.index,y = (Death['exp3']),mode='markers',marker_line_width=2, marker_size=10,name='Death'))
     fig.update_layout(autosize=False,width=1000)
     
-    fig2 = go.Figure()
-    fig2.add_trace(go.Candlestick(x=df.index,open=df['Open'],high=df['High'],low=df['Low'],close=df['Close'],name = 'CandleStick'))
-    fig2.update_layout(autosize=True,width=1000,yaxis_title='{} Stock'.format(symbol),xaxis_title='{} Price'.format(symbol))
-    
-    fig2.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"]), #hide weekends
-                 dict(values=["2015-12-25", "2016-01-01"])])  # hide Christmas and New Year's]
-    """fig2.show(config={'modeBarButtonsToAdd':['drawline',
-                                        'drawopenpath',
-                                        'drawclosedpath',
-                                        'drawcircle',
-                                        'drawrect',
-                                        'eraseshape'
-                                       ]})"""
     fig3 = go.Figure()
     fig3.add_trace(go.Bar(x = df.index,y = df['Volume']))
-    fig3.update_layout(autosize=True,width=1000,yaxis_title='{} Volume'.format(symbol),xaxis_title='{} Dates'.format(symbol))
+    fig3.update_layout(autosize=True,width=1000,yaxis_title='Volume'.format(symbol),xaxis_title='Dates')
     fig3.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"]), #hide weekends
                  dict(values=["2015-12-25", "2016-01-01"])])
-    
+
+    fig4 = go.Figure()
+    fig4.update_layout(autosize=True,width=1000)
+    fig4.add_trace(go.Scatter(y = df['RSI'], x = df.index,mode='lines', name='RSI'))
+    #fig.add_trace(go.Scatter(y = 30, x = df.index,mode='lines'))
+    fig4.add_shape(
+            type="line",
+            x0 = df.index[0],x1 = df.index[-1],
+            y0=30,y1=30,
+            line=dict(color='red', width=4,dash='dash'))
+    fig4.add_shape(
+            type="line",
+            x0 = df.index[0],x1 = df.index[-1],
+            y0=70,y1=70,
+            line=dict(color='red', width=4,dash='dash'))
     
     st.plotly_chart(fig2)#use_container_width = True)
-    st.title('MACD')
+    st.subheader('MACD')
     st.plotly_chart(fig)
-    st.title('Volume')
+    st.subheader('RSI')
+    st.plotly_chart(fig4)
+    st.subheader('Volume')
     st.plotly_chart(fig3)
+    #st.table(show)
     #st.line_chart(df.Close)
-    st.write(data)
+    #st.write(data)
 
 if option == 'Stock Data':
     try:
