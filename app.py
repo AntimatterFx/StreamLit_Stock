@@ -164,14 +164,14 @@ if option == 'Balance Sheet':
         newnames.append(newname)
     df1['Item  Item'] = newnames
     df1.rename(columns = {"Item  Item": "Item"}, 
-            inplace = True)
+           inplace = True)
     
     maindf = df1
     maindf = maindf.set_index('{}'.format(maindf.columns[0])) #Makes first column the index 
     maindf = maindf.drop(columns = maindf.columns[len(maindf.columns)-1]) # Gets rid of last colsumn 
     maindf = maindf.replace('-',0)
     
-    st.table(maindf)
+    st.table(maindf.astype("str"))#added str so it doesnt try to make it numers 
     
 if option == 'Income Statement':
     ticker = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
@@ -195,7 +195,7 @@ if option == 'Income Statement':
     maindf = maindf.drop(columns = maindf.columns[len(maindf.columns)-1]) # Gets rid of last colsumn 
     maindf = maindf.replace('-',0)
     
-    st.table(maindf)
+    st.table(maindf.astype("str"))#added str so it doesnt try to make it numers 
 if option == 'Cash Flow':
     ticker = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
     df = pd.read_html('https://www.marketwatch.com/investing/stock/{}/financials/cash-flow'.format(ticker))
@@ -217,4 +217,4 @@ if option == 'Cash Flow':
     maindf = maindf.drop(columns = maindf.columns[len(maindf.columns)-1]) # Gets rid of last colsumn 
     maindf = maindf.replace('-',0)
     
-    st.table(maindf)
+    st.table(maindf.astype("str"))#added str so it doesnt try to make it numers 
