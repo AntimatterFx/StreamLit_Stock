@@ -3,3 +3,5 @@ pandas
 yfinance
 plotly
 finviz
+numpy 
+requests 

@@ -4,6 +4,9 @@ import yfinance as yf
 import plotly.graph_objects as go
 import math as m
 import finviz
+import numpy as np 
+import requests 
+import datetime as dt 
 #st.title('Stocks')
 #st.title('Category')
 
@@ -19,7 +22,7 @@ import finviz
     
 #st.header(option)
 
-option = st.sidebar.selectbox("Which Dashboard?", ('Stock Data','Balance Sheet','Income Statement','Cash Flow', 'TA Chart'), 2)
+option = st.sidebar.selectbox("Which Dashboard?", ('Stock Data','Balance Sheet','Income Statement','Cash Flow', 'TA Chart','ETF'), 2)
 
 #st.header(option)
 
@@ -196,6 +199,7 @@ if option == 'Income Statement':
     maindf = maindf.replace('-',0)
     
     st.table(maindf.astype("str"))#added str so it doesnt try to make it numers 
+
 if option == 'Cash Flow':
     ticker = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
     df = pd.read_html('https://www.marketwatch.com/investing/stock/{}/financials/cash-flow'.format(ticker))
@@ -218,3 +222,71 @@ if option == 'Cash Flow':
     maindf = maindf.replace('-',0)
     
     st.table(maindf.astype("str"))#added str so it doesnt try to make it numers 
+
+if option == 'ETF':
+    
+    url = 'https://etfdb.com/compare/market-cap/'
+    header = {
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
+      "X-Requested-With": "XMLHttpRequest"
+    }
+    r = requests.get(url, headers=header)
+    df = pd.read_html(r.text)
+    ETFSS = df[0]['Symbol'].tolist()
+
+    
+    data = yf.download(ETFSS, period= '2y')
+    data.to_csv('MAIN.csv')
+    df3 = data
+    #df1 = pd.DataFrame()
+    df3 = df3['Adj Close']
+    df1 = pd.DataFrame()
+    s = []
+    t = []
+    tick = []
+    for i in df3.columns:
+        df1['exp1'] = df3['{}'.format(i)].ewm(span=12, adjust=False).mean()
+        df1['exp2'] = df3['{}'.format(i)].ewm(span=26, adjust=False).mean()
+        #df = df[-back:]
+        df1['macd'] = df1['exp1']-df1['exp2']
+        #print(df1)
+        df1['exp3'] = df1['macd'].ewm(span=9, adjust=False).mean()
+
+        previous_15 = df1['exp3'].shift(1)
+        previous_45 = df1['macd'].shift(1)
+
+
+        Golden = df1[((df1['exp3'] <= df1['macd']) & (previous_15 >= previous_45))]
+
+        Death = df1[((df1['exp3'] >= df1['macd']) & (previous_15 <= previous_45))]
+        tick.append(i)
+        #Golden 
+        try:
+            s.append(Golden.index[-1])
+        except:
+            s.append(np.nan)
+
+        #Death
+        try:
+            t.append(Death.index[-1])
+        except:
+            t.append(np.nan)
+    
+    
+
+    df2 = pd.DataFrame()
+    df2['Ticker'] = tick
+    df2['Death MACD'] = t
+    df2['Golden MACD'] = s
+    
+   
+    today = dt.datetime.now() - dt.timedelta(days = 7)
+    
+    df2 = df2[df2['Golden MACD'] >  today]
+    df2 = df2.sort_values('Golden MACD',ascending= False)
+    
+    df2 = df2.set_index('Ticker')
+    df2
+    #maindf = pd.read_csv("MAIN.csv")
+    #maindf
+    #st.table(df2)#added str so it doesnt try to make it numers 
