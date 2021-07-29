@@ -7,24 +7,12 @@ import finviz
 import numpy as np 
 import requests 
 import datetime as dt 
-#st.title('Stocks')
-#st.title('Category')
+
+box = ['Stock Data','Balance Sheet','Income Statement','Cash Flow', 'TA Chart','ETF','TA']
+#option = st.sidebar.selectbox("Which Dashboard?", ('Stock Data','Balance Sheet','Income Statement','Cash Flow', 'TA Chart','ETF'), 2)
+option = st.sidebar.selectbox("Which Dashboard?", (box), 2)
 
 
-
-#option = st.sidebar.selectbox("Which Dashboard?", ('twitter', 'wallstreetbets', 'stocktwits', 'chart', 'pattern'), 3)
-
-#if option == 'chart':
-#    symbol = st.sidebar.text_input("Symbol", value='MSFT', max_chars=None, key=None, type='default')
-#    df = pd.read_csv('ETF.csv')
-#    st.dataframe(df.style.highlight_max())
-    
-    
-#st.header(option)
-
-option = st.sidebar.selectbox("Which Dashboard?", ('Stock Data','Balance Sheet','Income Statement','Cash Flow', 'TA Chart','ETF'), 2)
-
-#st.header(option)
 
 
 if option == 'TA Chart':
@@ -280,9 +268,9 @@ if option == 'ETF':
     df2['Golden MACD'] = s
     
    
-    today = dt.datetime.now() - dt.timedelta(days = 7)
+    #today = dt.datetime.now() - dt.timedelta(days = 7)
     
-    df2 = df2[df2['Golden MACD'] >  today]
+    #df2 = df2[df2['Golden MACD'] >  today]
     df2 = df2.sort_values('Golden MACD',ascending= False)
     
     df2 = df2.set_index('Ticker')
@@ -290,3 +278,4 @@ if option == 'ETF':
     #maindf = pd.read_csv("MAIN.csv")
     #maindf
     #st.table(df2)#added str so it doesnt try to make it numers 
+
